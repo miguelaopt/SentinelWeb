@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="pt-PT" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel | Enterprise Secure Code Scanner</title>
+    
+    <!-- 
+      FAVICON: Coloque a sua imagem (png, ico, svg) na mesma pasta deste ficheiro 
+      e nomeie-a como 'favicon.png', ou altere o 'href' abaixo.
+    -->
+    <link rel="icon" type="image/png" href="shield.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        dark: {
+                            900: '#0B0E14', // Obsidian
+                            800: '#151923', // Charcoal
+                            700: '#2A2F45', // Highlight
+                        },
+                        brand: {
+                            400: '#60A5FA', // Blue 400
+                            500: '#3B82F6', // Blue 500 (Sentinel Blue)
+                            600: '#2563EB', // Blue 600
+                            accent: '#F43F5E', // Rose for alerts
+                            success: '#10B981', // Emerald for success
+                        }
+                    },
+                    animation: {
+                        'blob': 'blob 7s infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+                        'typewriter': 'typewriter 2s steps(40) 1s forwards',
+                        'scroll': 'scroll 20s linear infinite',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        typewriter: {
+                            '0%': { clipPath: 'polygon(0 0, 0 100%, 0 100%, 0 0)' },
+                            '100%': { clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' }
+                        },
+                        scroll: {
+                            '0%': { transform: 'translateX(0)' },
+                            '100%': { transform: 'translateX(-50%)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0B0E14; }
+        ::-webkit-scrollbar-thumb { background: #2A2F45; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3B82F6; }
+
+        /* Glassmorphism */
+        .glass {
+            background: rgba(11, 14, 20, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .glass-card {
+            background: rgba(21, 25, 35, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            background: rgba(30, 35, 50, 0.8);
+            border-color: rgba(59, 130, 246, 0.4);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Glitch Effect on Hover for ASCII Art */
+        .glitch-hover:hover {
+            animation: glitch-anim 0.3s infinite;
+            color: #60A5FA;
+            text-shadow: 2px 0 #F43F5E, -2px 0 #10B981;
+        }
+
+        @keyframes glitch-anim {
+            0% { transform: translate(0) }
+            20% { transform: translate(-2px, 2px) }
+            40% { transform: translate(-2px, -2px) }
+            60% { transform: translate(2px, 2px) }
+            80% { transform: translate(2px, -2px) }
+            100% { transform: translate(0) }
+        }
+
+        /* Input Styling */
+        .input-field {
+            background: rgba(21, 25, 35, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            transition: all 0.2s ease;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            background: rgba(21, 25, 35, 0.8);
+        }
+
+        /* Text Gradients */
+        .text-gradient {
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .text-gradient-brand {
+            background: linear-gradient(135deg, #60A5FA 0%, #2563EB 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Hero Grid */
+        .bg-grid {
+            background-size: 50px 50px;
+            background-image: linear-gradient(to right, rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
+        }
+
+        /* Syntax Highlighting */
+        .token.command { color: #60A5FA; font-weight: bold; }
+        .token.flag { color: #F472B6; }
+        .token.string { color: #34D399; }
+        .token.comment { color: #64748B; font-style: italic; }
+        
+        /* Reveal Animation */
+        .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s ease-out; }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        
+        /* Accordion */
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
+    </style>
+</head>
+<body class="bg-dark-900 text-slate-300 antialiased overflow-x-hidden selection:bg-brand-600 selection:text-white">
+
+    <!-- Toast Notification (Hidden by default) -->
+    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 z-[60] bg-dark-800 border border-brand-500/50 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 translate-y-10 pointer-events-none">
+        <i class="fa-solid fa-circle-check text-brand-success"></i>
+        <span class="font-medium text-sm">Comando copiado para a área de transferência!</span>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="fixed w-full z-50 transition-all duration-300 border-b border-transparent" id="navbar">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex-shrink-0 flex items-center gap-3 cursor-pointer group">
+                    <div class="w-8 h-8 rounded bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center text-white font-bold text-lg shadow-[0_0_15px_rgba(37,99,235,0.5)] group-hover:shadow-[0_0_25px_rgba(37,99,235,0.8)] transition-all duration-300">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <span class="font-bold text-xl text-white tracking-tight group-hover:text-brand-400 transition-colors">Sentinel</span>
+                </div>
+                
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-8">
+                        <a href="#features" class="hover:text-white transition-colors duration-200 text-sm font-medium hover:bg-white/5 px-3 py-2 rounded-lg">Funcionalidades</a>
+                        <a href="#ecosystem" class="hover:text-white transition-colors duration-200 text-sm font-medium hover:bg-white/5 px-3 py-2 rounded-lg">Ecossistema</a>
+                        <a href="#install" class="hover:text-white transition-colors duration-200 text-sm font-medium hover:bg-white/5 px-3 py-2 rounded-lg">Instalação</a>
+                        <a href="#contact" class="hover:text-white transition-colors duration-200 text-sm font-medium hover:bg-white/5 px-3 py-2 rounded-lg">Contacto</a>
+                        <a href="https://github.com/miguelaopt/Sentinel" target="_blank" class="text-slate-400 hover:text-white transition-colors"><i class="fa-brands fa-github text-lg"></i></a>
+                    </div>
+                </div>
+
+                <div class="hidden md:block">
+                    <a href="#install" class="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded text-sm font-medium transition-all duration-200 shadow-lg shadow-brand-600/20 flex items-center gap-2 transform hover:scale-105 active:scale-95">
+                        <span>Get Started</span>
+                        <i class="fa-solid fa-terminal text-xs"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-full bg-grid z-0"></div>
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full z-0 pointer-events-none">
+            <div class="absolute top-20 left-1/4 w-96 h-96 bg-brand-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-10 animate-blob"></div>
+            <div class="absolute top-40 right-1/4 w-96 h-96 bg-brand-accent rounded-full mix-blend-multiply filter blur-[128px] opacity-10 animate-blob animation-delay-2000"></div>
+        </div>
+
+        <div class="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 text-center">
+            
+            <!-- ASCII Art Container -->
+            <div class="relative mx-auto w-fit mb-12 group cursor-crosshair">
+                <!-- ASCII Art Text with Glitch Effect -->
+                <div class="relative z-10 hidden md:block font-mono text-[10px] md:text-xs text-brand-500/50 whitespace-pre leading-none select-none pointer-events-none animate-typewriter glitch-hover transition-colors" style="clip-path: polygon(0 0, 0 100%, 0 100%, 0 0);">
+ ______     ______     __   __     ______   __     __   __     ______     __        
+/\  ___\   /\  ___\   /\ "-.\ \   /\__  _\ /\ \   /\ "-.\ \   /\  ___\   /\ \       
+\ \___  \  \ \  __\   \ \ \-.  \  \/_/\ \/ \ \ \  \ \ \-.  \  \ \  __\   \ \ \____  
+ \/\_____\  \ \_____\  \ \_\\"\_\    \ \_\  \ \_\  \ \_\\"\_\  \ \_____\  \ \_____\ 
+  \/_____/   \/_____/   \/_/ \/_/     \/_/   \/_/   \/_/ \/_/   \/_____/   \/_____/ 
+                </div>
+                <div class="opacity-0 group-hover:opacity-100 transition-opacity absolute -bottom-6 left-0 w-full text-center text-xs text-brand-500 font-mono tracking-widest">[SYSTEM ONLINE]</div>
+            </div>
+
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-900/50 border border-brand-500/30 text-brand-400 text-xs font-semibold uppercase tracking-wide mb-8 animate-[fadeInUp_0.8s_ease-out_0.2s_both] backdrop-blur-md hover:bg-brand-900/80 transition-colors cursor-default">
+                <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+                Docker Ready
+            </div>
+            
+            <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-6 animate-[fadeInUp_0.8s_ease-out_0.4s_both]">
+                <span class="text-gradient">Proteja o seu código.</span><br>
+                <span class="text-gradient-brand">Feche o ciclo de segurança.</span>
+            </h1>
+            
+            <p class="mt-6 text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-[fadeInUp_0.8s_ease-out_0.6s_both]">
+                O Sentinel é uma plataforma SAST híbrida que deteta vulnerabilidades, reporta automaticamente no 
+                <span class="text-white font-semibold">Jira</span> e sugere correções via 
+                <span class="text-white font-semibold">Google Gemini</span>.
+            </p>
+            
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 animate-[fadeInUp_0.8s_ease-out_0.8s_both]">
+                <div class="w-full sm:w-auto flex items-center bg-dark-800 border border-dark-700 rounded px-4 py-3 font-mono text-sm text-slate-300 shadow-2xl hover:border-brand-500/50 transition-colors group">
+                    <span class="text-brand-500 mr-3 select-none">$</span>
+                    <span class="select-all">git clone https://github.com/miguelaopt/Sentinel.git</span>
+                    <button class="ml-4 text-slate-500 hover:text-white transition-colors group-hover:text-brand-400" onclick="copyToClipboard('git clone https://github.com/miguelaopt/Sentinel.git')">
+                        <i class="fa-regular fa-copy"></i>
+                    </button>
+                </div>
+                <a href="#features" class="px-6 py-3 text-sm font-semibold text-slate-300 hover:text-white transition-colors border-b border-transparent hover:border-brand-500">
+                    Saber mais <i class="fa-solid fa-arrow-down ml-2 animate-bounce"></i>
+                </a>
+            </div>
+
+            <!-- Terminal Visual -->
+            <div class="mt-20 mx-auto max-w-4xl animate-[fadeInUp_1s_ease-out_1s_both] relative group">
+                <div class="absolute -inset-1 bg-gradient-to-r from-brand-600 to-blue-900 rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+                <div class="relative rounded-xl bg-[#0f1115] border border-white/10 shadow-2xl overflow-hidden text-left font-mono text-sm leading-relaxed">
+                    <div class="flex items-center px-4 py-3 bg-[#1a1d24] border-b border-white/5">
+                        <div class="flex space-x-2 mr-4">
+                            <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
+                        </div>
+                        <div class="flex-1 text-center text-xs text-slate-500">root@sentinel-scanner:~</div>
+                    </div>
+                    <div class="p-6 overflow-x-auto h-[320px]">
+                        <div class="flex">
+                            <span class="text-brand-500 mr-2">➜</span>
+                            <span class="text-slate-100">docker run sentinel-scanner python main.py /app/target</span>
+                        </div>
+                        <div class="mt-2 text-slate-300" id="terminal-content">
+                            <div><span class="text-blue-400">[INFO]</span> Sentinel Engine v1.0 initialized</div>
+                            <div class="mt-1"><span class="text-blue-400">[INFO]</span> Loaded detection rules: OWASP, Secrets, Docker, IaC</div>
+                            <div class="mt-2"><span class="text-yellow-400">[SCAN]</span> Analyzing 42 files...</div>
+                            <div class="mt-4 border-l-2 border-red-500 pl-3 animate-pulse">
+                                <div class="text-red-400 font-bold">⚠ CRITICAL: AWS Secret Key exposed</div>
+                                <div class="text-slate-500 text-xs">File: backend/config.py:24</div>
+                            </div>
+                            <div class="mt-2 border-l-2 border-blue-500 pl-3">
+                                <div class="text-blue-400 font-bold">🤖 GEMINI AI REMEDIATION</div>
+                                <div class="text-slate-400 text-xs">Suggestion: Use os.getenv('AWS_SECRET_KEY') instead of hardcoded strings.</div>
+                            </div>
+                            <div class="mt-4"><span class="text-green-400">[JIRA]</span> Ticket <a href="#" class="underline text-blue-400">SEC-1042</a> created automatically.</div>
+                            <div class="mt-2"><span class="text-green-400">[SUCCESS]</span> Report synced to Dashboard.</div>
+                            <div class="mt-2 flex">
+                                <span class="text-brand-500 mr-2">➜</span>
+                                <span class="w-2 h-5 bg-slate-500 animate-pulse"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Infinite Tech Stack Marquee (New) -->
+    <div class="py-10 bg-dark-800/30 border-y border-white/5 overflow-hidden relative">
+        <!-- Fade Masks for Smoothness -->
+        <div class="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-dark-900 to-transparent z-10"></div>
+        <div class="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-dark-900 to-transparent z-10"></div>
+        
+        <div class="flex gap-12 animate-scroll w-[200%] items-center opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+            <!-- Icons Repeated for Loop -->
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-python text-3xl"></i> Python</div>
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-docker text-3xl"></i> Docker</div>
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-jira text-3xl"></i> Jira</div>
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-github text-3xl"></i> GitHub</div>
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-gitlab text-3xl"></i> GitLab</div>
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-google text-3xl"></i> Gemini</div>
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-react text-3xl"></i> React</div>
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-linux text-3xl"></i> Linux</div>
+            
+            <!-- Duplicates -->
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-python text-3xl"></i> Python</div>
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-docker text-3xl"></i> Docker</div>
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-jira text-3xl"></i> Jira</div>
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-github text-3xl"></i> GitHub</div>
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-gitlab text-3xl"></i> GitLab</div>
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-google text-3xl"></i> Gemini</div>
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-react text-3xl"></i> React</div>
+            <div class="flex items-center gap-3 text-xl font-bold text-slate-400"><i class="fa-brands fa-linux text-3xl"></i> Linux</div>
+        </div>
+    </div>
+    
+    <!-- Stats Section (Updated with Animation) -->
+    <div class="border-b border-white/5 bg-dark-800/50 backdrop-blur-sm">
+        <div class="max-w-7xl mx-auto px-6 py-12">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x divide-white/5">
+                <div class="reveal hover:transform hover:scale-110 transition-transform duration-300">
+                    <div class="text-3xl font-bold text-white mb-1 counter" data-target="10000">0</div>
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">Scans Realizados</div>
+                </div>
+                <div class="reveal transition-delay-100 hover:transform hover:scale-110 transition-transform duration-300">
+                    <div class="text-3xl font-bold text-brand-500 mb-1 counter" data-target="0">0</div> <!-- Should stay 0% -->
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">Dados Partilhados</div>
+                </div>
+                <div class="reveal transition-delay-200 hover:transform hover:scale-110 transition-transform duration-300">
+                    <div class="text-3xl font-bold text-white mb-1 counter" data-target="50">0</div>
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">Regras OWASP</div>
+                </div>
+                <div class="reveal transition-delay-300 hover:transform hover:scale-110 transition-transform duration-300">
+                    <div class="text-3xl font-bold text-brand-success mb-1">24/7</div>
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">Monitorização</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Grid -->
+    <section id="features" class="py-24 relative bg-dark-900">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="text-center mb-20 reveal">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4 text-white">Plataforma Completa</h2>
+                <p class="text-slate-400 text-lg max-w-2xl mx-auto">
+                    Deixe de usar ferramentas isoladas. O Sentinel unifica a deteção e a resolução.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="glass-card p-8 rounded border-t-4 border-brand-500 reveal group">
+                    <div class="w-12 h-12 bg-brand-500/10 rounded flex items-center justify-center mb-6 text-brand-500 group-hover:scale-110 transition-transform">
+                        <i class="fa-brands fa-jira text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Integração JIRA</h3>
+                    <p class="text-slate-400 leading-relaxed mb-4">
+                        O ciclo <strong>Detetar-Reportar-Resolver</strong>. O Sentinel abre tickets automaticamente no JIRA quando encontra falhas críticas.
+                    </p>
+                    <ul class="text-sm text-slate-500 space-y-2">
+                        <li><i class="fa-solid fa-check text-brand-500 mr-2"></i> Criação automática de Bugs</li>
+                        <li><i class="fa-solid fa-check text-brand-500 mr-2"></i> Atribuição à equipa correta</li>
+                        <li><i class="fa-solid fa-check text-brand-500 mr-2"></i> Sincronização de estado</li>
+                    </ul>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="glass-card p-8 rounded border-t-4 border-purple-500 reveal transition-delay-100 group">
+                    <div class="w-12 h-12 bg-purple-500/10 rounded flex items-center justify-center mb-6 text-purple-400 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-wand-magic-sparkles text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">AI Remediation</h3>
+                    <p class="text-slate-400 leading-relaxed mb-4">
+                        Potenciado pelo <strong>Google Gemini</strong>. Não receba apenas o erro, receba o código corrigido.
+                    </p>
+                    <div class="bg-dark-900 p-3 rounded text-xs font-mono text-slate-400 border border-white/5 group-hover:border-purple-500/30 transition-colors">
+                        <span class="text-red-400">- password = "123"</span><br>
+                        <span class="text-green-400">+ password = os.getenv("DB_PWD")</span>
+                    </div>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="glass-card p-8 rounded border-t-4 border-brand-success reveal transition-delay-200 group">
+                    <div class="w-12 h-12 bg-emerald-500/10 rounded flex items-center justify-center mb-6 text-brand-success group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-server text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Scan Híbrido & Docker</h3>
+                    <p class="text-slate-400 leading-relaxed mb-4">
+                        Instalação "Plug & Play" com contentores isolados. Arquitetura assíncrona com Redis e Celery.
+                    </p>
+                    <ul class="text-sm text-slate-500 space-y-2">
+                        <li><i class="fa-solid fa-check text-brand-success mr-2"></i> OWASP Top 10</li>
+                        <li><i class="fa-solid fa-check text-brand-success mr-2"></i> Docker & IaC Misconfigs</li>
+                        <li><i class="fa-solid fa-check text-brand-success mr-2"></i> Segredos Expostos</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Architecture / Ecosystem -->
+    <section id="ecosystem" class="py-24 bg-dark-800/30">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="grid lg:grid-cols-2 gap-16 items-center">
+                <div class="reveal">
+                    <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">O Ecossistema Sentinel</h2>
+                    <p class="text-slate-400 text-lg mb-8">
+                        Mais do que um scanner, uma plataforma de gestão de risco e conformidade (GDPR, SOC2).
+                    </p>
+                    
+                    <div class="space-y-6">
+                        <div class="flex gap-4">
+                            <div class="flex-shrink-0 w-12 h-12 rounded bg-dark-800 flex items-center justify-center border border-white/10 text-white hover:border-brand-500 hover:text-brand-400 transition-colors">
+                                <i class="fa-brands fa-python text-2xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-bold">Backend Robusto</h4>
+                                <p class="text-sm text-slate-500">Desenvolvido em Python/FastAPI para alta performance e extensibilidade.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="flex-shrink-0 w-12 h-12 rounded bg-dark-800 flex items-center justify-center border border-white/10 text-white hover:border-brand-500 hover:text-brand-400 transition-colors">
+                                <i class="fa-brands fa-react text-2xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-bold">Dashboard Moderno</h4>
+                                <p class="text-sm text-slate-500">Interface Next.js 15 para visualização gráfica de riscos e tendências.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="flex-shrink-0 w-12 h-12 rounded bg-dark-800 flex items-center justify-center border border-white/10 text-white hover:border-brand-500 hover:text-brand-400 transition-colors">
+                                <i class="fa-solid fa-bolt text-2xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-bold">Processamento Assíncrono</h4>
+                                <p class="text-sm text-slate-500">Redis e Celery garantem que grandes volumes de código são processados sem bloqueios.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative reveal">
+                    <div class="bg-dark-800 rounded-lg border border-white/10 p-1">
+                        <div class="bg-dark-900 rounded p-6">
+                            <h4 class="text-sm font-mono text-slate-500 mb-4 border-b border-white/5 pb-2">.github/workflows/sentinel.yml</h4>
+                            <div class="font-mono text-xs md:text-sm leading-relaxed overflow-x-auto">
+<pre><code class="language-yaml"><span class="token command">name:</span> Sentinel Security Scan
+<span class="token command">on:</span> [push, pull_request]
+
+<span class="token command">jobs:</span>
+  <span class="token command">security:</span>
+    <span class="token command">runs-on:</span> ubuntu-latest
+    <span class="token command">steps:</span>
+      - <span class="token command">uses:</span> actions/checkout@v3
+      
+      - <span class="token command">name:</span> Run Sentinel
+        <span class="token command">uses:</span> miguelaopt/Sentinel/backend@main
+        <span class="token command">with:</span>
+          <span class="token string">target-dir:</span> '.'
+          <span class="token string">output-file:</span> 'security-report.json'
+        <span class="token command">env:</span>
+          <span class="token string">SENTINEL_API_KEY:</span> ${{ secrets.SENTINEL_KEY }}</code></pre>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center justify-between px-4">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-brands fa-github text-slate-400"></i>
+                                <span class="text-xs text-slate-400">Integração Nativa</span>
+                            </div>
+                            <span class="text-xs text-brand-success"><i class="fa-solid fa-check-circle"></i> Verified Action</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Steps -->
+    <section id="install" class="py-24 bg-dark-900">
+        <div class="max-w-4xl mx-auto px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center text-white mb-16">Instalação Passo a Passo</h2>
+            
+            <div class="relative border-l border-white/10 ml-6 space-y-12">
+                <!-- Step 1 -->
+                <div class="relative pl-12 reveal">
+                    <div class="absolute -left-3 top-0 w-6 h-6 rounded-full bg-brand-600 border-4 border-dark-900 animate-pulse"></div>
+                    <h3 class="text-xl font-bold text-white mb-2">1. Clonar o Projeto</h3>
+                    <div class="bg-dark-800 rounded-lg p-4 font-mono text-sm border border-white/5 flex justify-between items-center group hover:border-brand-500/50 transition-colors">
+                        <span class="text-slate-300">git clone https://github.com/miguelaopt/Sentinel.git</span>
+                        <button class="text-slate-500 hover:text-white" onclick="copyToClipboard('git clone https://github.com/miguelaopt/Sentinel.git')"><i class="fa-regular fa-copy"></i></button>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="relative pl-12 reveal">
+                    <div class="absolute -left-3 top-0 w-6 h-6 rounded-full bg-dark-700 border-4 border-dark-900"></div>
+                    <h3 class="text-xl font-bold text-white mb-2">2. Configurar Segredos</h3>
+                    <p class="text-slate-400 mb-4 text-sm">Crie um ficheiro <code class="bg-white/10 px-1 rounded">.env</code> na raiz.</p>
+                    <div class="bg-dark-800 rounded-lg p-4 font-mono text-sm border border-white/5 overflow-x-auto text-slate-400 hover:border-brand-500/50 transition-colors">
+                        <div class="mb-1"><span class="text-purple-400">SUPABASE_URL</span>="https://teu-projeto.supabase.co"</div>
+                        <div class="mb-1"><span class="text-purple-400">GEMINI_API_KEY</span>="tua-chave-google-ai"</div>
+                        <div class="mb-1"><span class="text-purple-400">ADMIN_SUDO_PASSWORD</span>="sentinel_admin"</div>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="relative pl-12 reveal">
+                    <div class="absolute -left-3 top-0 w-6 h-6 rounded-full bg-dark-700 border-4 border-dark-900"></div>
+                    <h3 class="text-xl font-bold text-white mb-2">3. Iniciar Servidor</h3>
+                    <div class="bg-dark-800 rounded-lg p-4 font-mono text-sm border border-white/5 flex justify-between items-center hover:border-brand-500/50 transition-colors">
+                        <span class="text-slate-300"><span class="text-brand-500">docker-compose</span> up --build</span>
+                        <button class="text-slate-500 hover:text-white" onclick="copyToClipboard('docker-compose up --build')"><i class="fa-regular fa-copy"></i></button>
+                    </div>
+                    <p class="mt-4 text-sm text-green-400"><i class="fa-solid fa-check mr-2"></i>Aceda ao Dashboard em http://localhost:3000</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section (New) -->
+    <section class="py-24 bg-dark-800/30 border-y border-white/5">
+        <div class="max-w-3xl mx-auto px-6">
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-3xl font-bold text-white mb-4">Perguntas Frequentes</h2>
+                <p class="text-slate-400">Tudo o que precisa de saber sobre o Sentinel.</p>
+            </div>
+            
+            <div class="space-y-4">
+                <details class="group bg-dark-800 rounded-lg border border-white/5 p-6 cursor-pointer open:ring-1 open:ring-brand-500/50 reveal">
+                    <summary class="flex justify-between items-center font-semibold text-white">
+                        <span>O Sentinel é gratuito?</span>
+                        <i class="fa-solid fa-chevron-down text-slate-500 group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <p class="text-slate-400 mt-4 leading-relaxed">
+                        Sim! O Sentinel é Open Source e pode ser utilizado gratuitamente na sua máquina local ou servidor. Contribuições no GitHub são bem-vindas.
+                    </p>
+                </details>
+
+                <details class="group bg-dark-800 rounded-lg border border-white/5 p-6 cursor-pointer open:ring-1 open:ring-brand-500/50 reveal transition-delay-100">
+                    <summary class="flex justify-between items-center font-semibold text-white">
+                        <span>Preciso de saber Python para usar?</span>
+                        <i class="fa-solid fa-chevron-down text-slate-500 group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <p class="text-slate-400 mt-4 leading-relaxed">
+                        Não. Embora o backend seja em Python, tudo é executado via Docker. Você apenas precisa de ter o Docker instalado e rodar um comando para levantar o sistema.
+                    </p>
+                </details>
+
+                <details class="group bg-dark-800 rounded-lg border border-white/5 p-6 cursor-pointer open:ring-1 open:ring-brand-500/50 reveal transition-delay-200">
+                    <summary class="flex justify-between items-center font-semibold text-white">
+                        <span>Os meus dados saem do servidor?</span>
+                        <i class="fa-solid fa-chevron-down text-slate-500 group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <p class="text-slate-400 mt-4 leading-relaxed">
+                        Apenas para usar a funcionalidade de AI Remediation (Google Gemini), um excerto do código vulnerável é enviado para análise. Todo o resto do scan acontece localmente.
+                    </p>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Form Section (New) -->
+    <section id="contact" class="py-24 relative overflow-hidden">
+        <!-- Background element -->
+        <div class="absolute right-0 top-1/2 -translate-y-1/2 w-1/2 h-full bg-gradient-to-l from-brand-600/5 to-transparent pointer-events-none"></div>
+
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="grid lg:grid-cols-2 gap-16">
+                <div class="reveal">
+                    <h2 class="text-3xl md:text-5xl font-bold mb-6 text-white">Vamos Conversar?</h2>
+                    <p class="text-slate-400 text-lg mb-8 leading-relaxed">
+                        Tem dúvidas sobre a implementação ou precisa de uma demonstração personalizada para a sua equipa? Entre em contacto.
+                    </p>
+                    
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-4 text-slate-300">
+                            <div class="w-10 h-10 rounded bg-dark-800 flex items-center justify-center border border-white/10 text-brand-500">
+                                <i class="fa-solid fa-envelope"></i>
+                            </div>
+                            <span>miguel.rf267@gmail.com</span>
+                        </div>
+                        <div class="flex items-center gap-4 text-slate-300">
+                            <div class="w-10 h-10 rounded bg-dark-800 flex items-center justify-center border border-white/10 text-brand-500">
+                                <i class="fa-brands fa-github"></i>
+                            </div>
+                            <span>@miguelaopt</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-8 rounded-2xl reveal transition-delay-100 relative hover:border-brand-500/30 transition-colors">
+                    <!-- 
+                         IMPORTANT: To make this form work, sign up at https://formspree.io
+                         Create a new form and replace the URL below with your unique endpoint.
+                         Example: https://formspree.io/f/xpznqrzb
+                    -->
+                    <form id="contactForm" action="https://formspree.io/f/SEU_ID_DO_FORMSPREE" method="POST" class="space-y-6">
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-slate-400">Nome</label>
+                                <input type="text" name="name" required placeholder="O seu nome" class="w-full px-4 py-3 rounded-lg input-field">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-slate-400">Telefone</label>
+                                <input type="tel" name="phone" placeholder="+351 912 345 678" class="w-full px-4 py-3 rounded-lg input-field">
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-400">Email</label>
+                            <input type="email" name="email" required placeholder="seu@email.com" class="w-full px-4 py-3 rounded-lg input-field">
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-400">Assunto</label>
+                            <input type="text" name="subject" required placeholder="Ex: Demonstração Enterprise" class="w-full px-4 py-3 rounded-lg input-field">
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-400">Mensagem</label>
+                            <textarea name="message" required rows="4" placeholder="Como podemos ajudar?" class="w-full px-4 py-3 rounded-lg input-field resize-none"></textarea>
+                        </div>
+
+                        <button type="submit" class="w-full py-4 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-brand-600/25">
+                            Enviar Mensagem <i class="fa-solid fa-paper-plane ml-2"></i>
+                        </button>
+                    </form>
+
+                    <!-- Success Message Overlay (Hidden by default) -->
+                    <div id="formSuccess" class="absolute inset-0 bg-dark-900/90 backdrop-blur-md flex flex-col items-center justify-center text-center p-8 rounded-2xl hidden z-10">
+                        <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white text-2xl mb-4 animate-[blob_0.5s_cubic-bezier(0.175,0.885,0.32,1.275)]">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white mb-2">Mensagem Enviada!</h3>
+                        <p class="text-slate-400">Obrigado pelo contacto. Responderemos em breve.</p>
+                        <button onclick="document.getElementById('formSuccess').classList.add('hidden'); document.getElementById('contactForm').reset();" class="mt-6 text-brand-500 hover:text-white transition-colors">Fechar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-black py-12 border-t border-white/10">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8 text-center">
+            <div class="flex items-center justify-center gap-2 mb-6 text-white font-bold text-xl">
+                <i class="fa-solid fa-shield-halved text-brand-600"></i>
+                Sentinel
+            </div>
+            
+            <p class="text-slate-500 text-sm mb-8 max-w-md mx-auto">
+                Uma ferramenta Open Source para segurança de aplicações.
+                Sinta-se livre para contribuir no GitHub.
+            </p>
+
+            <div class="flex justify-center space-x-6 mb-8">
+                <a href="https://github.com/miguelaopt" target="_blank" class="text-slate-400 hover:text-white transition-colors">
+                    <i class="fa-brands fa-github text-xl"></i>
+                </a>
+                <a href="mailto:miguel.rf267@gmail.com" class="text-slate-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-envelope text-xl"></i>
+                </a>
+            </div>
+            
+            <div class="pt-8 border-t border-white/10 text-slate-600 text-sm font-mono">
+                Desenvolvido com <i class="fa-solid fa-heart text-red-900 mx-1"></i> e café por <span class="text-slate-400">Miguel Ferreira</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Updated Copy to Clipboard with Toast
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            
+            // Trigger Toast
+            const toast = document.getElementById('toast');
+            toast.classList.remove('opacity-0', 'translate-y-10');
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-10');
+            }, 3000);
+
+            // Button Feedback (Optional fallback)
+            const btn = event.currentTarget;
+            const icon = btn.querySelector('i');
+            icon.classList.remove('fa-copy', 'fa-regular');
+            icon.classList.add('fa-check', 'fa-solid', 'text-green-400');
+            setTimeout(() => {
+                icon.classList.add('fa-copy', 'fa-regular');
+                icon.classList.remove('fa-check', 'fa-solid', 'text-green-400');
+            }, 2000);
+        }
+
+        // Navbar blur effect
+        window.addEventListener('scroll', () => {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 20) {
+                navbar.classList.add('glass');
+            } else {
+                navbar.classList.remove('glass');
+            }
+        });
+
+        // Animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    
+                    // Trigger counters if inside a revealed element
+                    const counters = entry.target.querySelectorAll('.counter');
+                    counters.forEach(counter => {
+                        const target = +counter.getAttribute('data-target');
+                        if (target > 0 && counter.innerText === '0') {
+                             animateValue(counter, 0, target, 2000);
+                        }
+                    });
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+
+        // Animated Counter Function
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                
+                // Format with K/M if needed, here simple +
+                let val = Math.floor(progress * (end - start) + start);
+                if (end >= 1000) val = (val / 1000).toFixed(1) + 'k+';
+                else val = val + '+';
+                
+                if(end === 0) val = "0%"; // Special case for 0%
+
+                obj.innerHTML = val;
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // Real Form Handler using AJAX to Formspree
+        document.getElementById('contactForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            const btn = form.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            
+            // Loading state
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> A enviar...';
+            btn.disabled = true;
+
+            // Get form data
+            const data = new FormData(form);
+
+            // AJAX request to Formspree
+            fetch(form.action, {
+                method: form.method,
+                body: data,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    // Success! Show overlay
+                    document.getElementById('formSuccess').classList.remove('hidden');
+                    form.reset();
+                } else {
+                    response.json().then(data => {
+                        if (Object.hasOwn(data, 'errors')) {
+                            alert("Oops! " + data["errors"].map(error => error["message"]).join(", "));
+                        } else {
+                            alert("Oops! Ocorreu um problema ao enviar o formulário.");
+                        }
+                    })
+                }
+            }).catch(error => {
+                alert("Oops! Ocorreu um problema ao enviar o formulário.");
+            }).finally(() => {
+                // Reset button state
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        });
+    </script>
+</body>
+</html>
